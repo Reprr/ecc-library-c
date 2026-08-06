@@ -35,32 +35,43 @@ ecc_point_affine sum_affine(ecc_point_affine P, ecc_point_affine Q, ecc_curve cu
     if (P.inf) return Q;
     if (Q.inf) return P;
 
-    if (equal(P.x, Q.x) && equal(sum(P.y, Q.y, p), from_u64(0)))
+    if (equal(P.x, Q.x) && equal(sum(P.y, Q.y, p), from_u64(0))) // P == -Q
         return NULL_POINT_AFFINE;
 
-    if (P.x == Q.x && P.y == Q.y && P.y == 0)
+    if (equal(P.x, Q.x) && equal(P.y, Q.y) && equal(P.y, from_u64(0))) // P == Q == O
         return NULL_POINT_AFFINE;
 
     ecc_int lambda = calc_lambda(P, Q, curve);
     ecc_point_affine R;
     R.inf = false;
-    R.x = calc_by_mod(lambda * lambda - P.x - Q.x, p);
-    R.y = calc_by_mod(lambda * (P.x - R.x) - P.y, p);
+    // R.x = calc_by_mod(lambda * lambda - P.x - Q.x, p);
+    R.x = sub(
+        mul(lambda, lambda, p),
+        sum(P.x, Q.x, p),
+        p
+    );
+    // R.y = calc_by_mod(lambda * (P.x - R.x) - P.y, p);
+    R.y = sub(
+        mul(lambda, sub(P.x, R.x, p), p),
+        P.y,
+        p
+    );
     return R;
 }
 
 ecc_point_affine mul_scalar_affine(ecc_point_affine P, ecc_int n, ecc_curve curve) {
-    if (n == 0 || P.inf)
+    if (equal(n, from_u64(0)) || P.inf)
         return NULL_POINT_AFFINE;
 
     ecc_point_affine result = NULL_POINT_AFFINE;
     ecc_point_affine base = P;
 
-    while (n > 0) {
-        if (n & 1)
+    while (cmp(n, from_u64(0))) {
+        if (n.d[0] == 1)
             result = sum_affine(result, base, curve);
         base = sum_affine(base, base, curve);
-        n >>= 1;
+        // n >>= 1;
+        n = shift_right_1(n);
     }
     return result;
 }
@@ -68,7 +79,20 @@ ecc_point_affine mul_scalar_affine(ecc_point_affine P, ecc_int n, ecc_curve curv
 bool is_on_curve(ecc_point_affine P, ecc_curve curve) {
     if (P.inf) return true;
     ecc_int p = curve.F->p;
-    ecc_int left = calc_by_mod(P.y * P.y, p);
-    ecc_int right = calc_by_mod(P.x * P.x * P.x + curve.a * P.x + curve.b, p);
-    return left == right;
+    ecc_int left = mul(P.y, P.y, p);
+    // ecc_int right = calc_by_mod(P.x * P.x * P.x + curve.a * P.x + curve.b, p);
+    ecc_int right = sum(
+        mul(
+            mul(P.x, P.x, p),
+            P.x,
+            p
+        ),
+        sum(
+            mul(curve.a, P.x, p),
+            curve.b,
+            p
+        ),
+        p
+    );
+    return equal(left, right);
 }

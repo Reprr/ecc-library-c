@@ -142,7 +142,10 @@ ecc_int mul(ecc_int a, ecc_int b, ecc_int p) {
 }
 
 ecc_int mul_scalar(ecc_int a, ecc_int n, ecc_int p) {
-    if (equal(n, from_u64(0))) return NULL_ECC_INT;
+    if (equal(n, from_u64(0))) {
+        ecc_int nul = {.d = {0}};
+        return nul;
+    }
     if (equal(n, from_u64(1))) return a;
     if (n.d[0] == 1) {
         return sum(a, mul_scalar(a, _sub(n, from_u64(1)), p), p);

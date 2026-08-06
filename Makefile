@@ -1,62 +1,86 @@
 # Компилятор и флаги
-CC = gcc
-CFLAGS = -Wall -Wextra -Iinclude -Itest -g
-LDFLAGS =
+CC       = gcc
+CFLAGS   = -Wall -Wextra -std=c99 -g -O2
+INCLUDES = -Iinclude -Iinclude/ecc -Itest
+CFLAGS   += $(INCLUDES) -MMD -MP
+LDFLAGS  = -lm
 
-# Директории
-SRC_DIR = src
-TEST_DIR = test
-ECDH_DIR = ecdh
-INCLUDE_DIR = include
+# Директории сборки
+BUILD_DIR = build
+OBJ_DIR   = $(BUILD_DIR)/objs
+LIB_DIR   = $(BUILD_DIR)/lib
+BIN_DIR   = $(BUILD_DIR)/bin
 
-# -------------------------------------------------------------------
-# 1. Сборка основной программы ECDH (использует и big_int, и field)
-# -------------------------------------------------------------------
-ECDH_SRCS = $(ECDH_DIR)/main.c $(SRC_DIR)/big_int.c $(SRC_DIR)/field.c
-ECDH_OBJS = $(ECDH_SRCS:.c=.o)
+# Имена конечных файлов
+LIBRARY      = libecc.a
+APP_EXEC     = ecdh          # основное приложение
+TEST_EXEC    = test_runner
 
-# -------------------------------------------------------------------
-# 2. Сборка теста для big_int (БЕЗ field.c)
-# -------------------------------------------------------------------
-BIGINT_TEST_SRCS = $(TEST_DIR)/big_int_test.c $(TEST_DIR)/unity.c $(SRC_DIR)/big_int.c
-BIGINT_TEST_OBJS = $(BIGINT_TEST_SRCS:.c=.o)
+LIBRARY_PATH = $(LIB_DIR)/$(LIBRARY)
+APP_EXEC_PATH = $(BIN_DIR)/$(APP_EXEC)
+TEST_EXEC_PATH = $(BIN_DIR)/$(TEST_EXEC)
 
-# -------------------------------------------------------------------
+# Исходники библиотеки и приложения
+LIB_SRCS  = src/big_int.c src/field.c
+APP_SRCS  = main.c           # лежит в корне
+
+# Исходники тестов (без main.c, потому что big_int_test.c уже содержит main)
+TEST_SRCS = test/big_int_test.c test/unity.c
+
+# Объектные файлы
+LIB_OBJS  = $(patsubst src/%.c, $(OBJ_DIR)/%.o, $(LIB_SRCS))
+APP_OBJS  = $(OBJ_DIR)/main.o
+TEST_OBJS = $(patsubst test/%.c, $(OBJ_DIR)/%.o, $(TEST_SRCS))
+
+# Файлы зависимостей
+DEPS = $(LIB_OBJS:.o=.d) $(APP_OBJS:.o=.d) $(TEST_OBJS:.o=.d)
+
 # Цели по умолчанию
-# -------------------------------------------------------------------
-.PHONY: all clean test test-bigint
+.PHONY: all app tests check clean distclean
 
-all: ecdh test-bigint   # собирает и прогу, и тест
+all: app tests
 
-# Сборка основной программы
-ecdh: $(ECDH_OBJS)
-	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
+app: $(APP_EXEC_PATH)
 
-# Сборка и запуск теста big_int
-test-bigint: $(BIGINT_TEST_OBJS)
-	$(CC) $(CFLAGS) -o test_bigint $^ $(LDFLAGS)
-	./test_bigint
+tests: $(TEST_EXEC_PATH)
 
-# Синоним для удобства
-test: test-bigint
+check: tests
+	./$(TEST_EXEC_PATH)
 
-# -------------------------------------------------------------------
-# Общее правило компиляции .c -> .o (работает для файлов в любых папках)
-# -------------------------------------------------------------------
-%.o: %.c
+# --- Сборка библиотеки ---
+$(LIBRARY_PATH): $(LIB_OBJS) | $(LIB_DIR)
+	ar rcs $@ $^
+
+# --- Сборка приложения ---
+$(APP_EXEC_PATH): $(APP_OBJS) $(LIBRARY_PATH) | $(BIN_DIR)
+	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS)
+
+# --- Сборка тестов ---
+$(TEST_EXEC_PATH): $(TEST_OBJS) $(LIBRARY_PATH) | $(BIN_DIR)
+	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS)
+
+# --- Правила компиляции ---
+# Из src/
+$(OBJ_DIR)/%.o: src/%.c | $(OBJ_DIR)
 	$(CC) $(CFLAGS) -c $< -o $@
 
-# -------------------------------------------------------------------
-# Явные зависимости от заголовков (для пересборки при их изменении)
-# -------------------------------------------------------------------
-$(SRC_DIR)/big_int.o: $(INCLUDE_DIR)/ecc/big_int.h $(INCLUDE_DIR)/ecc/types.h
-$(SRC_DIR)/field.o: $(INCLUDE_DIR)/ecc/field.h $(INCLUDE_DIR)/ecc/types.h
-$(TEST_DIR)/big_int_test.o: $(INCLUDE_DIR)/ecc/big_int.h $(INCLUDE_DIR)/ecc/types.h $(TEST_DIR)/unity.h
-$(TEST_DIR)/unity.o: $(TEST_DIR)/unity.h
-$(ECDH_DIR)/main.o: $(INCLUDE_DIR)/ecc/big_int.h $(INCLUDE_DIR)/ecc/field.h $(INCLUDE_DIR)/ecc/types.h
+# Из test/
+$(OBJ_DIR)/%.o: test/%.c | $(OBJ_DIR)
+	$(CC) $(CFLAGS) -c $< -o $@
 
-# -------------------------------------------------------------------
-# Очистка
-# -------------------------------------------------------------------
+# Из корня (для main.c)
+$(OBJ_DIR)/main.o: main.c | $(OBJ_DIR)
+	$(CC) $(CFLAGS) -c $< -o $@
+
+# Создание директорий
+$(OBJ_DIR) $(LIB_DIR) $(BIN_DIR):
+	mkdir -p $@
+
+# --- Очистка ---
 clean:
-	rm -f $(SRC_DIR)/*.o $(TEST_DIR)/*.o $(ECDH_DIR)/*.o ecdh test_bigint
+	rm -rf $(BUILD_DIR)
+
+distclean: clean
+
+# Подключение зависимостей
+-include $(DEPS)

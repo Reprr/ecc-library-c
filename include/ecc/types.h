@@ -12,8 +12,6 @@ typedef struct {
     uint32_t d[NUM_LIMBS];   
 } ecc_int;
 
-const ecc_int NULL_ECC_INT = { .d = {0} };
-
 typedef struct {
     ecc_int low;
     ecc_int high;
