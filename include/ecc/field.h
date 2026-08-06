@@ -3,8 +3,9 @@
 
 #include "types.h"
 #include <stdlib.h>
+#include "big_int.h"
 
-static const ecc_point_affine NULL_POINT_AFFINE = { .x = 0, .y = 0, .inf = true };
+static ecc_point_affine NULL_POINT_AFFINE = { .x = {0}, .y = {0}, .inf = true };
 
 ecc_int bin_pow (ecc_int a, ecc_int n, ecc_int p);
 ecc_int inv (ecc_int a, ecc_int p);

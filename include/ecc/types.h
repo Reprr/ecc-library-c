@@ -4,7 +4,20 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-typedef uint64_t ecc_int;
+// typedef uint64_t ecc_int;
+
+#define NUM_LIMBS 8
+
+typedef struct {
+    uint32_t d[NUM_LIMBS];   
+} ecc_int;
+
+const ecc_int NULL_ECC_INT = { .d = {0} };
+
+typedef struct {
+    ecc_int low;
+    ecc_int high;
+} ecc_int_512;
 
 typedef struct {
     ecc_int p;
