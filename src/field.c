@@ -3,7 +3,7 @@
 ecc_int bin_pow(ecc_int a, ecc_int n, ecc_int p) {
     if (equal(n, from_u64(0))) return from_u64(1);
     if (equal(n, from_u64(1))) return a;
-    if (n.d[0] == 1)
+    if (n.d[0] & 1)
         return mul(a, bin_pow(a, sub(n, from_u64(1), p), p), p);
     ecc_int b = bin_pow(a, shift_right_1(n), p);
     return mul(b, b, p);
@@ -67,7 +67,7 @@ ecc_point_affine mul_scalar_affine(ecc_point_affine P, ecc_int n, ecc_curve curv
     ecc_point_affine base = P;
 
     while (cmp(n, from_u64(0))) {
-        if (n.d[0] == 1)
+        if (n.d[0] & 1)
             result = sum_affine(result, base, curve);
         base = sum_affine(base, base, curve);
         // n >>= 1;

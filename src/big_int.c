@@ -147,7 +147,7 @@ ecc_int mul_scalar(ecc_int a, ecc_int n, ecc_int p) {
         return nul;
     }
     if (equal(n, from_u64(1))) return a;
-    if (n.d[0] == 1) {
+    if (n.d[0] & 1) {
         return sum(a, mul_scalar(a, _sub(n, from_u64(1)), p), p);
     }
     ecc_int b = mul_scalar(a, shift_right_1(n), p);
