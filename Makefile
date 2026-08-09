@@ -21,7 +21,7 @@ APP_EXEC_PATH = $(BIN_DIR)/$(APP_EXEC)
 TEST_EXEC_PATH = $(BIN_DIR)/$(TEST_EXEC)
 
 # Исходники библиотеки и приложения
-LIB_SRCS  = src/big_int.c src/field.c
+LIB_SRCS  = src/big_int.c src/field.c src/ecdh.c
 APP_SRCS  = main.c           # лежит в корне
 
 # Исходники тестов (без main.c, потому что big_int_test.c уже содержит main)

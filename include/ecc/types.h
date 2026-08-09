@@ -28,7 +28,7 @@ typedef struct {
     bool inf;
 } ecc_point_affine;
 
-typedef struct {
+typedef struct { // Common projective
     ecc_int X;
     ecc_int Y;
     ecc_int Z;
@@ -43,8 +43,26 @@ typedef struct {
     ecc_point_affine *G_affine;
     ecc_point_projective *G_projective;
 
-    ecc_int n;
+    ecc_int N;
     ecc_int h;
 } ecc_curve;
+
+typedef enum {
+    ECC_OK,
+    ECC_INVALID_PARAMS,
+    ECC_FAIL,
+} ecc_status_code;
+
+typedef struct {
+    ecc_point_affine *G;
+} ecc_public_key;
+
+typedef struct {
+    ecc_int *n;
+} ecc_private_key;
+
+typedef struct {
+    ecc_point_affine *G;
+} ecc_general_private_key;
 
 #endif

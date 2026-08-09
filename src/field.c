@@ -1,12 +1,18 @@
 #include "../include/ecc/field.h"
 
 ecc_int bin_pow(ecc_int a, ecc_int n, ecc_int p) {
-    if (equal(n, from_u64(0))) return from_u64(1);
-    if (equal(n, from_u64(1))) return a;
-    if (n.d[0] & 1)
-        return mul(a, bin_pow(a, sub(n, from_u64(1), p), p), p);
-    ecc_int b = bin_pow(a, shift_right_1(n), p);
-    return mul(b, b, p);
+    ecc_int result = from_u64(1);
+    ecc_int base = a;
+    
+    while (cmp(n, from_u64(0)) > 0) {
+        if (n.d[0] & 1) {
+            result = mul(result, base, p);
+        }
+        base = mul(base, base, p);
+        n = shift_right_1(n);
+    }
+
+    return result;
 }
 
 ecc_int inv(ecc_int a, ecc_int p) {
@@ -59,6 +65,7 @@ ecc_point_affine sum_affine(ecc_point_affine P, ecc_point_affine Q, ecc_curve cu
     return R;
 }
 
+// NOT SECURE
 ecc_point_affine mul_scalar_affine(ecc_point_affine P, ecc_int n, ecc_curve curve) {
     if (equal(n, from_u64(0)) || P.inf)
         return NULL_POINT_AFFINE;
