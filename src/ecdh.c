@@ -1,32 +1,43 @@
 #include "../include/ecc/ecdh.h"
 
-void print_ecc_status_code (ecc_status_code code) {
+void print_ecc_status_code(ecc_status_code code) {
     if (code == ECC_OK) {
-        fprintf (stdout, "ECC_OK\n");
+        fprintf(stdout, "ECC_OK\n");
     } else if (code == ECC_INVALID_PARAMS) {
-        fprintf (stdout, "ECC_INVALID_PARAMS\n");
+        fprintf(stdout, "ECC_INVALID_PARAMS\n");
     } else if (code == ECC_FAIL) {
-        fprintf (stdout, "ECC_FAIL\n");
+        fprintf(stdout, "ECC_FAIL\n");
+    } else if (code == ECC_NOT_ON_CURVE) {
+        fprintf(stdout, "ECC_NOT_ON_CURVE\n");
     } else {
-        fprintf (stdout, "Unknown code\n");
+        fprintf(stdout, "Unknown code\n");
     }
 }
 
-void free_curve (ecc_curve *curve) {
-    if (curve->F) free(curve->F);
-    if (curve->G_affine) free(curve->G_affine);
-    if (curve->G_projective) free(curve->G_projective);
+void free_curve(ecc_curve *curve) {
+    if (curve->F) {
+        free(curve->F);
+        curve->F = NULL;
+    }
+    if (curve->G_affine) {
+        free(curve->G_affine);
+        curve->G_affine = NULL;
+    }
+    if (curve->G_projective) {
+        free(curve->G_projective);
+        curve->G_projective = NULL;
+    }
 }
 
 ecc_status_code init_curve(char *curve_ident, ecc_curve *curve) {
     if (strcmp(curve_ident, "secp256k1") == 0) {
-        // y^2 = x^3 + 7 mod p
         curve->a = from_u64(0); 
         curve->b = from_u64(7);
         
         curve->F = (ecc_field *) malloc(sizeof(ecc_field));
+        if (!curve->F) return ECC_FAIL;
         
-        // Prime p = FFFFFFFF FFFFFFFF FFFFFFFF FFFFFFFF FFFFFFFF FFFFFFFF FFFFFFFE FFFFFC2F
+        // Prime p
         curve->F->p.d[0] = 0xFFFFFC2F;
         curve->F->p.d[1] = 0xFFFFFFFE;
         curve->F->p.d[2] = 0xFFFFFFFF;
@@ -37,9 +48,13 @@ ecc_status_code init_curve(char *curve_ident, ecc_curve *curve) {
         curve->F->p.d[7] = 0xFFFFFFFF;
 
         curve->G_affine = (ecc_point_affine *) malloc(sizeof(ecc_point_affine));
+        if (!curve->G_affine) {
+            free(curve->F);
+            return ECC_FAIL;
+        }
         curve->G_affine->inf = false;
 
-        // Gx = 79BE667E F9DCBBAC 55A06295 CE870B07 029BFCDB 2DCE28D9 59F2815B 16F81798
+        // Gx
         curve->G_affine->x.d[0] = 0x16F81798;
         curve->G_affine->x.d[1] = 0x59F2815B;
         curve->G_affine->x.d[2] = 0x2DCE28D9;
@@ -49,7 +64,7 @@ ecc_status_code init_curve(char *curve_ident, ecc_curve *curve) {
         curve->G_affine->x.d[6] = 0xF9DCBBAC;
         curve->G_affine->x.d[7] = 0x79BE667E;
 
-        // Gy = 483ADA77 26A3C465 5DA4FBFC 0E1108A8 FD17B448 A6855419 9C47D08F FB10D4B8
+        // Gy
         curve->G_affine->y.d[0] = 0xFB10D4B8;
         curve->G_affine->y.d[1] = 0x9C47D08F;
         curve->G_affine->y.d[2] = 0xA6855419;
@@ -59,7 +74,7 @@ ecc_status_code init_curve(char *curve_ident, ecc_curve *curve) {
         curve->G_affine->y.d[6] = 0x26A3C465;
         curve->G_affine->y.d[7] = 0x483ADA77;
 
-        // Order N = FFFFFFFF FFFFFFFF FFFFFFFF FFFFFFFE BAAEDCE6 AF48A03B BFD25E8C D0364141
+        // Order N
         curve->N.d[0] = 0xD0364141;
         curve->N.d[1] = 0xBFD25E8C;
         curve->N.d[2] = 0xAF48A03B;
@@ -69,7 +84,18 @@ ecc_status_code init_curve(char *curve_ident, ecc_curve *curve) {
         curve->N.d[6] = 0xFFFFFFFF;
         curve->N.d[7] = 0xFFFFFFFF;
 
-        curve->h = from_u64(1); // Cofactor
+        curve->h = from_u64(1);
+        
+        // Инициализация G_projective
+        curve->G_projective = (ecc_point_projective *) malloc(sizeof(ecc_point_projective));
+        if (!curve->G_projective) {
+            free(curve->G_affine);
+            free(curve->F);
+            return ECC_FAIL;
+        }
+        curve->G_projective->X = curve->G_affine->x;
+        curve->G_projective->Y = curve->G_affine->y;
+        curve->G_projective->Z = from_u64(1);
 
         return ECC_OK;
     } else {
@@ -78,15 +104,15 @@ ecc_status_code init_curve(char *curve_ident, ecc_curve *curve) {
 }
 
 ecc_status_code generate_private_key(ecc_private_key *pr_k, const ecc_curve *curve) {
+    ecc_int zero = from_u64(0);
 
     while (1) {
-        ssize_t res = getrandom(pr_k->n->d, sizeof(pr_k->n->d), 0); // 0 - /dev/urandom
-
-        if (res != sizeof (pr_k->n->d)) {
+        ssize_t res = getrandom(pr_k->n->d, sizeof(pr_k->n->d), 0);
+        if (res != sizeof(pr_k->n->d)) {
             return ECC_FAIL;
         }
 
-        if (cmp(*(pr_k->n, curve->N) < 0) && !equal(pr_k->n, from_u64(0))) {
+        if (cmp(*(pr_k->n), curve->N) < 0 && !equal(*(pr_k->n), zero)) {
             return ECC_OK;
         }
     }
@@ -94,24 +120,28 @@ ecc_status_code generate_private_key(ecc_private_key *pr_k, const ecc_curve *cur
     return ECC_OK;
 }
 
-ecc_status_code calculate_public_key (ecc_private_key *pr_k, ecc_curve *curve, ecc_public_key *pb_k) {
-    *pb_k->G = mul_scalar_affine(*curve->G_affine, *pr_k->n, (*curve));
+ecc_status_code calculate_public_key(ecc_private_key *pr_k, ecc_curve *curve, ecc_public_key *pb_k) {
+    mul_scalar_affine(pb_k->G, curve->G_affine, *(pr_k->n), curve);
     return ECC_OK;
 }
 
-ecc_status_code calculate_general_private_key (ecc_private_key *pr_k, ecc_public_key *pb_k, ecc_curve *curve, ecc_general_private_key *gen_pr_k) {
-    if (!validate(pb_k, curve)) {
+bool validate_public_key(ecc_public_key *pb_k, ecc_curve *curve) {
+    if (pb_k->G->inf) return false;
+    if (!is_on_curve(pb_k->G, curve)) return false;
+    
+    // check N * P = O
+    ecc_point_affine check;
+    mul_scalar_affine(&check, pb_k->G, curve->N, curve);
+    if (!check.inf) return false;
+    
+    return true;
+}
+
+ecc_status_code calculate_general_private_key(ecc_private_key *pr_k, ecc_public_key *pb_k, ecc_curve *curve, ecc_general_private_key *gen_pr_k) {
+    if (!validate_public_key(pb_k, curve)) {
         return ECC_NOT_ON_CURVE;
     }
     
-    *gen_pr_k->G = mul_scalar_affine(*pb_k->G, *pr_k->n, (*curve));
-
+    mul_scalar_affine(gen_pr_k->G, pb_k->G, *(pr_k->n), curve);
     return ECC_OK;
 }
-
-bool validate_public_key (ecc_public_key *pb_k, ecc_curve *curve) {
-    return !is_on_curve(*pb_k->G, *curve);
-}
-
-
-
