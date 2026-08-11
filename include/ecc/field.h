@@ -7,13 +7,46 @@
 
 static ecc_point_affine NULL_POINT_AFFINE = { .x = {0}, .y = {0}, .inf = true };
 
-ecc_int bin_pow (ecc_int a, ecc_int n, ecc_int p);
-ecc_int inv (ecc_int a, ecc_int p);
-ecc_int calc_by_mod (ecc_int a, ecc_int p);
-ecc_int calc_lambda (const ecc_point_affine P, const ecc_point_affine Q, ecc_curve curve);
-ecc_point_affine sum_affine(const ecc_point_affine P, const ecc_point_affine Q, ecc_curve curve);
-ecc_point_affine mul_scalar_affine(const ecc_point_affine P, ecc_int n, ecc_curve curve);
-bool is_on_curve (const ecc_point_affine P, ecc_curve curve);
+ecc_int bin_pow(ecc_int a, ecc_int n, ecc_int p);
+ecc_int inv(ecc_int a, ecc_int p);
+ecc_int calc_by_mod(ecc_int a, ecc_int p);
+ecc_int calc_lambda(
+    const ecc_point_affine *P,
+    const ecc_point_affine *Q,
+    const ecc_curve *curve
+);
+void sum_affine(
+    ecc_point_affine *R,
+    const ecc_point_affine *P,
+    const ecc_point_affine *Q,
+    const ecc_curve *curve
+);
+void mul_scalar_affine(
+    ecc_point_affine *R,
+    const ecc_point_affine *P,
+    ecc_int n,
+    const ecc_curve *curve
+);
+bool is_on_curve(const ecc_point_affine *P, const ecc_curve *curve);
+
+void double_projective(
+    ecc_point_projective *R,
+    const ecc_point_projective *P,
+    const ecc_curve *curve
+);
+void sum_projective_neq(
+    ecc_point_projective *R,
+    const ecc_point_projective *P
+    const ecc_point_projective *Q,
+    const ecc_curve *curve
+);
+void sum_projective(
+    ecc_point_projective *R,
+    const ecc_point_projective *P,
+    const ecc_point_projective *Q,
+    const ecc_curve *curve
+); 
+
 void init_null_points();
 void init();
 
