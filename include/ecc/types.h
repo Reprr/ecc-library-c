@@ -51,6 +51,7 @@ typedef enum {
     ECC_OK,
     ECC_INVALID_PARAMS,
     ECC_FAIL,
+    ECC_NOT_ON_CURVE
 } ecc_status_code;
 
 typedef struct {
