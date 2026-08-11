@@ -25,7 +25,7 @@ ecc_int inv(ecc_int a, ecc_int p) {
 
 ecc_int calc_lambda(ecc_point_affine P, ecc_point_affine Q, ecc_curve curve) {
     ecc_int p = curve.F->p;
-    if (equal(P.x, Q.x) && equal(P.y, Q.y) && P.inf == Q.inf) {
+    if (equal(P.x, Q.x) && equal(P.y, Q.y)) {
         ecc_int num = sum(mul_scalar(mul(P.x, P.x, p), from_u64(3), p), curve.a, p);
         ecc_int den = mul_scalar(P.y, from_u64(2), p);
         return mul(num, inv(den, p), p);

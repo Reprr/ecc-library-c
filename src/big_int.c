@@ -34,6 +34,7 @@ ecc_int _sum(ecc_int a, ecc_int b) {
         res.d[i] = (uint32_t)sum;
         carry = sum >> 32;
     }
+
     return res;
 }
 
@@ -50,9 +51,21 @@ ecc_int _sub(ecc_int a, ecc_int b) {
 }
 
 ecc_int sum(ecc_int a, ecc_int b, ecc_int p) {
-    ecc_int res = _sum(a, b);
-    if (cmp(res, p) >= 0)
+    // ecc_int res = _sum(a, b);
+    // if (cmp(res, p) >= 0)
+    //     res = _sub(res, p);
+
+    uint64_t carry = 0;
+    ecc_int res = from_u64(0);
+    for (int i = 0; i < NUM_LIMBS; ++i) {
+        uint64_t sum = (uint64_t)a.d[i] + b.d[i] + carry;
+        res.d[i] = (uint32_t)sum;
+        carry = sum >> 32;
+    }
+
+    if (carry || cmp(res, p) >= 0)
         res = _sub(res, p);
+
     return res;
 }
 
