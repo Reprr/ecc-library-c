@@ -77,15 +77,20 @@ ecc_status_code init_curve(char *curve_ident, ecc_curve *curve) {
     }
 }
 
-ecc_status_code generate_private_key(ecc_private_key *pr_k) {
-    for (int i = 0; i < NUM_LIMBS; ++i) {
-        ssize_t result = getrandom(&(pr_k->n->d[i]), sizeof(pr_k->n), 0); // 0 - /dev/urandom
-        if (result < 0) {
-            // fprintf(stderr, "/dev/urandom failed...\n");
-            // exit(-1);
+ecc_status_code generate_private_key(ecc_private_key *pr_k, const ecc_curve *curve) {
+
+    while (1) {
+        ssize_t res = getrandom(pr_k->n->d, sizeof(pr_k->n->d), 0); // 0 - /dev/urandom
+
+        if (res != sizeof (pr_k->n->d)) {
             return ECC_FAIL;
         }
+
+        if (cmp(*(pr_k->n, curve->N) < 0) && !equal(pr_k->n, from_u64(0))) {
+            return ECC_OK;
+        }
     }
+
     return ECC_OK;
 }
 
@@ -95,6 +100,18 @@ ecc_status_code calculate_public_key (ecc_private_key *pr_k, ecc_curve *curve, e
 }
 
 ecc_status_code calculate_general_private_key (ecc_private_key *pr_k, ecc_public_key *pb_k, ecc_curve *curve, ecc_general_private_key *gen_pr_k) {
+    if (!validate(pb_k, curve)) {
+        return ECC_NOT_ON_CURVE;
+    }
+    
     *gen_pr_k->G = mul_scalar_affine(*pb_k->G, *pr_k->n, (*curve));
+
     return ECC_OK;
 }
+
+bool validate_public_key (ecc_public_key *pb_k, ecc_curve *curve) {
+    return !is_on_curve(*pb_k->G, *curve);
+}
+
+
+
