@@ -104,6 +104,32 @@ bool is_on_curve(const ecc_point_affine *P, const ecc_curve *curve) {
     return equal(left, right);
 }
 
+void affine_to_projective(ecc_point_projective *proj, const ecc_point_affine *aff) {
+    proj->x = aff->x;
+    proj->y = aff->y;
+    proj->z = from_u64(1);
+}
+
+void projective_to_affine(ecc_point_affine *aff, const ecc_point_projective *proj, ecc_int p) {
+    if (equal(proj->z, from_u64(0))) {
+        aff->inf = true;
+        aff->x = from_u64(0);
+        aff->y = from_u64(0);
+        return;
+    }
+    
+    aff->inf = false;
+    ecc_int z_inv = inv(proj->z, p);
+    aff->x = mul(proj->x, z_inv, p);
+    aff->y = mul(proj->y, z_inv, p);
+}
+
+bool is_on_curve_projective(const ecc_point_projective *P, const ecc_curve *curve) {
+    ecc_point_affine P_affine;
+    projective_to_affine(&P_affine, P, curve->F->p);
+    return is_on_curve(&P_affine, curve);
+}
+
 void double_projective(ecc_point_projective *R, const ecc_point_projective *P, const ecc_curve *curve) {
     ecc_int p = curve->F->p;
     
@@ -133,6 +159,7 @@ void double_projective(ecc_point_projective *R, const ecc_point_projective *P, c
     );
     
     R->z = mul(mul(S, mul(S, S, p), p), from_u64(8), p);
+    R->inf = false;
 }
 
 void sum_projective_neq(ecc_point_projective *R, const ecc_point_projective *P, const ecc_point_projective *Q, const ecc_curve *curve) {
@@ -190,6 +217,7 @@ void sum_projective_neq(ecc_point_projective *R, const ecc_point_projective *P, 
         p
     );
     R->z = mul(V3, Z1Z2, p);
+    R->inf = false;
 }
 
 void sum_projective(
@@ -199,43 +227,63 @@ void sum_projective(
     const ecc_curve *curve
 ) {
     ecc_int p = curve->F->p;
-    if (equal(P->z, from_u64(0))) {
-        *R = *Q;
-        return;
-    }
-    if (equal(Q->z, from_u64(0))) {
-        *R = *P;
-        return;
-    }
-
-    // Приводим к аффинным для проверки P + (-P) = O
-    ecc_int P_aff_x = mul(P->x, inv(P->z, p), p);
-    ecc_int P_aff_y = mul(P->y, inv(P->z, p), p);
-    ecc_int Q_aff_x = mul(Q->x, inv(Q->z, p), p);
-    ecc_int Q_aff_y = mul(Q->y, inv(Q->z, p), p);
     
-    // P + (-P) = O
-    if (equal(P_aff_x, Q_aff_x) && equal(sum(P_aff_y, Q_aff_y, p), from_u64(0))) {
-        R->x = from_u64(0);
-        R->y = from_u64(1);
-        R->z = from_u64(0);
-        return;
-    }
+    if (P->inf || equal(P->z, from_u64(0))) { *R = *Q; return; }
+    if (Q->inf || equal(Q->z, from_u64(0))) { *R = *P; return; }
 
-    if (equal(P_aff_x, Q_aff_x) && equal(P_aff_y, Q_aff_y))
-        double_projective(R, P, curve);
-    else
-        sum_projective_neq(R, P, Q, curve);
+    // P == Q iff x1*z2 == x2*z1 и y1*z2 == y2*z1
+    ecc_int P_x_Q_z = mul(P->x, Q->z, p);
+    ecc_int Q_x_P_z = mul(Q->x, P->z, p);
+    
+    if (equal(P_x_Q_z, Q_x_P_z)) {
+        ecc_int P_y_Q_z = mul(P->y, Q->z, p);
+        ecc_int Q_y_P_z = mul(Q->y, P->z, p);
+        
+        if (equal(P_y_Q_z, Q_y_P_z)) {
+            // P == Q
+            double_projective(R, P, curve);
+            return;
+        }
+        
+        if (equal(sum(P_y_Q_z, Q_y_P_z, p), from_u64(0))) {
+            // P == -Q
+            *R = NULL_POINT_PROJECTIVE;
+            return;
+        }
+    }
+    
+    // Точки различны и не являются обратными
+    sum_projective_neq(R, P, Q, curve);
 }
 
-// void mul_scalar_projective(
-//     ecc_point_affine *R,
-//     const ecc_point_affine *P,
-//     ecc_int n,
-//     const ecc_curve *curve
-// ) {
+void mul_scalar_projective(
+    ecc_point_projective *R,
+    const ecc_point_projective *P,
+    ecc_int n,
+    const ecc_curve *curve
+) {
+    if (equal(n, from_u64(0)) || equal(P->z, from_u64(0))) {
+        *R = NULL_POINT_PROJECTIVE;
+        return;
+    }
+    ecc_point_projective result = NULL_POINT_PROJECTIVE;
+    ecc_point_projective base = *P;
+    ecc_int temp = n;
 
-// }
+    while (cmp(temp, from_u64(0)) > 0) {
+        if (temp.d[0] & 1) {
+            ecc_point_projective tmp;
+            sum_projective(&tmp, &result, &base, curve);
+            result = tmp;
+        }
+        ecc_point_projective tmp;
+        sum_projective(&tmp, &base, &base, curve);
+        base = tmp;
+        temp = shift_right_1(temp);
+    }
+    
+    *R = result;
+}
 
 void init_null_points() {
 }

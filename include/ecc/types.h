@@ -56,7 +56,7 @@ typedef enum {
 } ecc_status_code;
 
 typedef struct {
-    ecc_point_affine *G;
+    ecc_point_projective *G;
 } ecc_public_key;
 
 typedef struct {
@@ -64,7 +64,7 @@ typedef struct {
 } ecc_private_key;
 
 typedef struct {
-    ecc_point_affine *G;
+    ecc_point_projective *G;
 } ecc_general_private_key;
 
 #endif

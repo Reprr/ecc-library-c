@@ -29,7 +29,9 @@ void mul_scalar_affine(
     const ecc_curve *curve
 );
 bool is_on_curve(const ecc_point_affine *P, const ecc_curve *curve);
-
+void affine_to_projective(ecc_point_projective *proj, const ecc_point_affine *aff);
+void projective_to_affine(ecc_point_affine *aff, const ecc_point_projective *proj, ecc_int p);
+bool is_on_curve_projective(const ecc_point_projective *P, const ecc_curve *curve);
 void double_projective(
     ecc_point_projective *R,
     const ecc_point_projective *P,
@@ -45,6 +47,13 @@ void sum_projective(
     ecc_point_projective *R,
     const ecc_point_projective *P,
     const ecc_point_projective *Q,
+    const ecc_curve *curve
+);
+
+void mul_scalar_projective(
+    ecc_point_projective *R,
+    const ecc_point_projective *P,
+    ecc_int n,
     const ecc_curve *curve
 );
 

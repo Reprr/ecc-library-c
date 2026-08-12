@@ -90,7 +90,7 @@ ecc_status_code init_curve(char *curve_ident, ecc_curve *curve) {
             return ECC_FAIL;
         }
         curve->G_projective->x = curve->G_affine->x;
-        curve->G_projective->x = curve->G_affine->y;
+        curve->G_projective->y = curve->G_affine->y;
         curve->G_projective->z = from_u64(1);
 
         return ECC_OK;
@@ -117,16 +117,16 @@ ecc_status_code generate_private_key(ecc_private_key *pr_k, const ecc_curve *cur
 }
 
 ecc_status_code calculate_public_key(ecc_private_key *pr_k, ecc_curve *curve, ecc_public_key *pb_k) {
-    mul_scalar_projective(pb_k->G, curve->G_affine, *(pr_k->n), curve);
+    mul_scalar_projective(pb_k->G, curve->G_projective, *(pr_k->n), curve);
     return ECC_OK;
 }
 
 bool validate_public_key(ecc_public_key *pb_k, ecc_curve *curve) {
     if (pb_k->G->inf) return false;
-    if (!is_on_curve(pb_k->G, curve)) return false;
+    if (!is_on_curve_projective(pb_k->G, curve)) return false;
     
     // check N * P = O
-    ecc_point_affine check;
+    ecc_point_projective check;
     mul_scalar_projective(&check, pb_k->G, curve->N, curve);
     if (!check.inf) return false;
     
@@ -134,12 +134,14 @@ bool validate_public_key(ecc_public_key *pb_k, ecc_curve *curve) {
 }
 
 ecc_status_code generate_key_pair (ecc_private_key *pr_k, ecc_public_key *pb_k, ecc_curve *E) {
-    pr_k.n = (ecc_int *) malloc (sizeof(ecc_int));
-    pb_k.G = (ecc_point_projective *) malloc(sizeof(ecc_point_projective));
+    pr_k->n = (ecc_int *) malloc (sizeof(ecc_int));
+    pb_k->G = (ecc_point_projective *) malloc(sizeof(ecc_point_projective));
     ecc_status_code error = generate_private_key(pr_k, E);
     if (error != ECC_OK)
         return error;
+    *pb_k->G = NULL_POINT_PROJECTIVE;
     error = calculate_public_key(pr_k, E, pb_k);
+    // fprintf (stdout, "here\n");
     if (error != ECC_OK)
         return error;
     if (!validate_public_key(pb_k, E))
@@ -152,6 +154,6 @@ ecc_status_code calculate_general_private_key(ecc_private_key *pr_k, ecc_public_
         return ECC_NOT_ON_CURVE;
     }
     
-    mul_scalar_affine(gen_pr_k->G, pb_k->G, *(pr_k->n), curve);
+    mul_scalar_projective(gen_pr_k->G, pb_k->G, *(pr_k->n), curve);
     return ECC_OK;
 }
