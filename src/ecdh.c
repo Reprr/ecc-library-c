@@ -54,7 +54,6 @@ ecc_status_code init_curve(char *curve_ident, ecc_curve *curve) {
         }
         curve->G_affine->inf = false;
 
-        // Gx
         curve->G_affine->x.d[0] = 0x16F81798;
         curve->G_affine->x.d[1] = 0x59F2815B;
         curve->G_affine->x.d[2] = 0x2DCE28D9;
@@ -64,7 +63,6 @@ ecc_status_code init_curve(char *curve_ident, ecc_curve *curve) {
         curve->G_affine->x.d[6] = 0xF9DCBBAC;
         curve->G_affine->x.d[7] = 0x79BE667E;
 
-        // Gy
         curve->G_affine->y.d[0] = 0xFB10D4B8;
         curve->G_affine->y.d[1] = 0x9C47D08F;
         curve->G_affine->y.d[2] = 0xA6855419;
@@ -74,7 +72,6 @@ ecc_status_code init_curve(char *curve_ident, ecc_curve *curve) {
         curve->G_affine->y.d[6] = 0x26A3C465;
         curve->G_affine->y.d[7] = 0x483ADA77;
 
-        // Order N
         curve->N.d[0] = 0xD0364141;
         curve->N.d[1] = 0xBFD25E8C;
         curve->N.d[2] = 0xAF48A03B;
@@ -86,7 +83,6 @@ ecc_status_code init_curve(char *curve_ident, ecc_curve *curve) {
 
         curve->h = from_u64(1);
         
-        // Инициализация G_projective
         curve->G_projective = (ecc_point_projective *) malloc(sizeof(ecc_point_projective));
         if (!curve->G_projective) {
             free(curve->G_affine);
@@ -121,7 +117,7 @@ ecc_status_code generate_private_key(ecc_private_key *pr_k, const ecc_curve *cur
 }
 
 ecc_status_code calculate_public_key(ecc_private_key *pr_k, ecc_curve *curve, ecc_public_key *pb_k) {
-    mul_scalar_affine(pb_k->G, curve->G_affine, *(pr_k->n), curve);
+    mul_scalar_projective(pb_k->G, curve->G_affine, *(pr_k->n), curve);
     return ECC_OK;
 }
 
@@ -131,10 +127,24 @@ bool validate_public_key(ecc_public_key *pb_k, ecc_curve *curve) {
     
     // check N * P = O
     ecc_point_affine check;
-    mul_scalar_affine(&check, pb_k->G, curve->N, curve);
+    mul_scalar_projective(&check, pb_k->G, curve->N, curve);
     if (!check.inf) return false;
     
     return true;
+}
+
+ecc_status_code generate_key_pair (ecc_private_key *pr_k, ecc_public_key *pb_k, ecc_curve *E) {
+    pr_k.n = (ecc_int *) malloc (sizeof(ecc_int));
+    pb_k.G = (ecc_point_projective *) malloc(sizeof(ecc_point_projective));
+    ecc_status_code error = generate_private_key(pr_k, E);
+    if (error != ECC_OK)
+        return error;
+    error = calculate_public_key(pr_k, E, pb_k);
+    if (error != ECC_OK)
+        return error;
+    if (!validate_public_key(pb_k, E))
+        return ECC_INVALID_PARAMS;
+    return ECC_OK;
 }
 
 ecc_status_code calculate_general_private_key(ecc_private_key *pr_k, ecc_public_key *pb_k, ecc_curve *curve, ecc_general_private_key *gen_pr_k) {
