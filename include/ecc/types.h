@@ -29,9 +29,10 @@ typedef struct {
 } ecc_point_affine;
 
 typedef struct { // Common projective
-    ecc_int X;
-    ecc_int Y;
-    ecc_int Z;
+    ecc_int x;
+    ecc_int y;
+    ecc_int z;
+    bool inf;
 } ecc_point_projective;
 
 typedef struct {

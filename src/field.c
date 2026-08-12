@@ -123,10 +123,8 @@ void double_projective(ecc_point_projective *R, const ecc_point_projective *P, c
     // H = W^2 - 8B
     ecc_int H = sub(mul(W, W, p), mul(B, from_u64(8), p), p);
     
-    // X3 = 2 * H * S
     R->x = mul(mul(H, from_u64(2), p), S, p);
     
-    // Y3 = W * (4B - H) - 8 * Y^2 * S^2
     ecc_int Y_sq_S_sq = mul(mul(P->y, P->y, p), mul(S, S, p), p);
     R->y = sub(
         mul(W, sub(mul(B, from_u64(4), p), H, p), p),
@@ -134,14 +132,110 @@ void double_projective(ecc_point_projective *R, const ecc_point_projective *P, c
         p
     );
     
-    // Z3 = 8 * S^3
     R->z = mul(mul(S, mul(S, S, p), p), from_u64(8), p);
 }
 
 void sum_projective_neq(ecc_point_projective *R, const ecc_point_projective *P, const ecc_point_projective *Q, const ecc_curve *curve) {
-    
+    ecc_int p = curve->F->p;
+    // U = Y2 * Z1 - Y1 * Z2
+    // V = X2 * Z1 - X1 * Z2
+    ecc_int U = sub(
+        mul(Q->y, P->z, p),
+        mul(P->y, Q->z, p),
+        p
+    ) ;
+    ecc_int V = sub(
+        mul(Q->x, P->z, p),
+        mul(P->x, Q->z, p),
+        p
+    );
+    ecc_int V2 = mul(V, V, p);
+    ecc_int V3 = mul(V2, V, p);
+    ecc_int U2 = mul(U, U, p);
+    ecc_int Z1Z2 = mul(P->z, Q->z, p);
+    ecc_int A = sub(
+        mul(U2, Z1Z2, p),
+        mul(
+            V2,
+            sum(
+                mul(P->x, Q->z, p),
+                mul(Q->x, P->z, p),
+                p
+            ),
+            p
+        ),
+        p
+    );
+    R->x = mul(V, A, p);
+    ecc_int X1v2Z2 = mul(
+        P->x,
+        mul(V2, Q->z, p),
+        p
+    );
+    R->y = sub(
+        mul(
+            U,
+            sub(
+                X1v2Z2,
+                A,
+                p
+            ),
+            p
+        ),
+        mul(
+            V3,
+            mul(P->y, Q->z, p),
+            p
+        ),
+        p
+    );
+    R->z = mul(V3, Z1Z2, p);
 }
 
+void sum_projective(
+    ecc_point_projective *R,
+    const ecc_point_projective *P,
+    const ecc_point_projective *Q,
+    const ecc_curve *curve
+) {
+    ecc_int p = curve->F->p;
+    if (equal(P->z, from_u64(0))) {
+        *R = *Q;
+        return;
+    }
+    if (equal(Q->z, from_u64(0))) {
+        *R = *P;
+        return;
+    }
+
+    // Приводим к аффинным для проверки P + (-P) = O
+    ecc_int P_aff_x = mul(P->x, inv(P->z, p), p);
+    ecc_int P_aff_y = mul(P->y, inv(P->z, p), p);
+    ecc_int Q_aff_x = mul(Q->x, inv(Q->z, p), p);
+    ecc_int Q_aff_y = mul(Q->y, inv(Q->z, p), p);
+    
+    // P + (-P) = O
+    if (equal(P_aff_x, Q_aff_x) && equal(sum(P_aff_y, Q_aff_y, p), from_u64(0))) {
+        R->x = from_u64(0);
+        R->y = from_u64(1);
+        R->z = from_u64(0);
+        return;
+    }
+
+    if (equal(P_aff_x, Q_aff_x) && equal(P_aff_y, Q_aff_y))
+        double_projective(R, P, curve);
+    else
+        sum_projective_neq(R, P, Q, curve);
+}
+
+// void mul_scalar_projective(
+//     ecc_point_affine *R,
+//     const ecc_point_affine *P,
+//     ecc_int n,
+//     const ecc_curve *curve
+// ) {
+
+// }
 
 void init_null_points() {
 }

@@ -93,9 +93,9 @@ ecc_status_code init_curve(char *curve_ident, ecc_curve *curve) {
             free(curve->F);
             return ECC_FAIL;
         }
-        curve->G_projective->X = curve->G_affine->x;
-        curve->G_projective->Y = curve->G_affine->y;
-        curve->G_projective->Z = from_u64(1);
+        curve->G_projective->x = curve->G_affine->x;
+        curve->G_projective->x = curve->G_affine->y;
+        curve->G_projective->z = from_u64(1);
 
         return ECC_OK;
     } else {
