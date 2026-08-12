@@ -278,7 +278,6 @@ void sum_projective(
         }
     }
     
-    // Точки различны и не являются обратными
     sum_projective_neq(R, P, Q, curve);
 }
 
@@ -299,9 +298,9 @@ void mul_scalar_projective(
 
     while (cmp(temp, from_u64(0)) > 0) {
         if (temp.d[0] & 1) {
-            sum_projective(&result, &result, &base, curve);  // Пишем прямо в result
+            sum_projective(&result, &result, &base, curve);
         }
-        sum_projective(&base, &base, &base, curve);  // Пишем прямо в base
+        sum_projective(&base, &base, &base, curve);
         temp = shift_right_1(temp);
     }
     *R = result;
