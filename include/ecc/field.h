@@ -5,8 +5,8 @@
 #include <stdlib.h>
 #include "big_int.h"
 
-static ecc_point_affine NULL_POINT_AFFINE = { .x = {0}, .y = {0}, .inf = true };
-static ecc_point_projective NULL_POINT_PROJECTIVE = { .x = {0}, .y = {1}, .z = {0}, .inf = true};
+extern const ecc_point_affine NULL_POINT_AFFINE;
+extern const ecc_point_projective NULL_POINT_PROJECTIVE;
 
 ecc_int bin_pow(ecc_int a, ecc_int n, ecc_int p);
 ecc_int inv(ecc_int a, ecc_int p);

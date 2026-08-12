@@ -1,5 +1,9 @@
 #include "../include/ecc/field.h"
 
+const ecc_point_affine NULL_POINT_AFFINE = { .x = {0}, .y = {0}, .inf = true };
+const ecc_point_projective NULL_POINT_PROJECTIVE = { .x = {0}, .y = {0}, .z = {0}, .inf = true };
+
+
 ecc_int bin_pow(ecc_int a, ecc_int n, ecc_int p) {
     ecc_int result = from_u64(1);
     ecc_int base = a;
@@ -108,10 +112,11 @@ void affine_to_projective(ecc_point_projective *proj, const ecc_point_affine *af
     proj->x = aff->x;
     proj->y = aff->y;
     proj->z = from_u64(1);
+    proj->inf = false;
 }
 
 void projective_to_affine(ecc_point_affine *aff, const ecc_point_projective *proj, ecc_int p) {
-    if (equal(proj->z, from_u64(0))) {
+    if (proj->inf || equal(proj->z, from_u64(0))) {
         aff->inf = true;
         aff->x = from_u64(0);
         aff->y = from_u64(0);
@@ -125,9 +130,28 @@ void projective_to_affine(ecc_point_affine *aff, const ecc_point_projective *pro
 }
 
 bool is_on_curve_projective(const ecc_point_projective *P, const ecc_curve *curve) {
-    ecc_point_affine P_affine;
-    projective_to_affine(&P_affine, P, curve->F->p);
-    return is_on_curve(&P_affine, curve);
+    if (P->inf || equal(P->z, from_u64(0))) return true;
+    
+    ecc_int p = curve->F->p;
+    
+    // Y^2 * Z
+    ecc_int left = mul(mul(P->y, P->y, p), P->z, p);
+    
+    // X^3
+    ecc_int x_sq = mul(P->x, P->x, p);
+    ecc_int x_cu = mul(x_sq, P->x, p);
+    
+    // a * X * Z^2
+    ecc_int z_sq = mul(P->z, P->z, p);
+    ecc_int a_x_z2 = mul(mul(curve->a, P->x, p), z_sq, p);
+    
+    // b * Z^3
+    ecc_int b_z3 = mul(curve->b, mul(z_sq, P->z, p), p);
+    
+    // right = X^3 + a*X*Z^2 + b*Z^3
+    ecc_int right = sum(sum(x_cu, a_x_z2, p), b_z3, p);
+    
+    return equal(left, right);
 }
 
 void double_projective(ecc_point_projective *R, const ecc_point_projective *P, const ecc_curve *curve) {
@@ -149,17 +173,18 @@ void double_projective(ecc_point_projective *R, const ecc_point_projective *P, c
     // H = W^2 - 8B
     ecc_int H = sub(mul(W, W, p), mul(B, from_u64(8), p), p);
     
-    R->x = mul(mul(H, from_u64(2), p), S, p);
+    ecc_int new_x = mul(mul(H, from_u64(2), p), S, p);
     
     ecc_int Y_sq_S_sq = mul(mul(P->y, P->y, p), mul(S, S, p), p);
-    R->y = sub(
+    ecc_int new_y = sub(
         mul(W, sub(mul(B, from_u64(4), p), H, p), p),
         mul(Y_sq_S_sq, from_u64(8), p),
         p
     );
     
-    R->z = mul(mul(S, mul(S, S, p), p), from_u64(8), p);
+    ecc_int new_z = mul(mul(S, mul(S, S, p), p), from_u64(8), p);
     R->inf = false;
+    R->x = new_x; R->y = new_y; R->z = new_z;
 }
 
 void sum_projective_neq(ecc_point_projective *R, const ecc_point_projective *P, const ecc_point_projective *Q, const ecc_curve *curve) {
@@ -193,13 +218,13 @@ void sum_projective_neq(ecc_point_projective *R, const ecc_point_projective *P, 
         ),
         p
     );
-    R->x = mul(V, A, p);
+    ecc_int new_x = mul(V, A, p);
     ecc_int X1v2Z2 = mul(
         P->x,
         mul(V2, Q->z, p),
         p
     );
-    R->y = sub(
+    ecc_int new_y = sub(
         mul(
             U,
             sub(
@@ -216,8 +241,9 @@ void sum_projective_neq(ecc_point_projective *R, const ecc_point_projective *P, 
         ),
         p
     );
-    R->z = mul(V3, Z1Z2, p);
+    ecc_int new_z = mul(V3, Z1Z2, p);
     R->inf = false;
+    R->x = new_x; R->y = new_y; R->z = new_z;
 }
 
 void sum_projective(
@@ -262,26 +288,22 @@ void mul_scalar_projective(
     ecc_int n,
     const ecc_curve *curve
 ) {
-    if (equal(n, from_u64(0)) || equal(P->z, from_u64(0))) {
+    if (equal(n, from_u64(0)) || P->inf || equal(P->z, from_u64(0))) {
         *R = NULL_POINT_PROJECTIVE;
         return;
     }
+
     ecc_point_projective result = NULL_POINT_PROJECTIVE;
     ecc_point_projective base = *P;
     ecc_int temp = n;
 
     while (cmp(temp, from_u64(0)) > 0) {
         if (temp.d[0] & 1) {
-            ecc_point_projective tmp;
-            sum_projective(&tmp, &result, &base, curve);
-            result = tmp;
+            sum_projective(&result, &result, &base, curve);  // Пишем прямо в result
         }
-        ecc_point_projective tmp;
-        sum_projective(&tmp, &base, &base, curve);
-        base = tmp;
+        sum_projective(&base, &base, &base, curve);  // Пишем прямо в base
         temp = shift_right_1(temp);
     }
-    
     *R = result;
 }
 

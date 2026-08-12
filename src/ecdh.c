@@ -92,6 +92,7 @@ ecc_status_code init_curve(char *curve_ident, ecc_curve *curve) {
         curve->G_projective->x = curve->G_affine->x;
         curve->G_projective->y = curve->G_affine->y;
         curve->G_projective->z = from_u64(1);
+        curve->G_projective->inf = false;
 
         return ECC_OK;
     } else {
@@ -125,11 +126,6 @@ bool validate_public_key(ecc_public_key *pb_k, ecc_curve *curve) {
     if (pb_k->G->inf) return false;
     if (!is_on_curve_projective(pb_k->G, curve)) return false;
     
-    // check N * P = O
-    ecc_point_projective check;
-    mul_scalar_projective(&check, pb_k->G, curve->N, curve);
-    if (!check.inf) return false;
-    
     return true;
 }
 
@@ -145,7 +141,7 @@ ecc_status_code generate_key_pair (ecc_private_key *pr_k, ecc_public_key *pb_k, 
     if (error != ECC_OK)
         return error;
     if (!validate_public_key(pb_k, E))
-        return ECC_INVALID_PARAMS;
+        return ECC_NOT_ON_CURVE;
     return ECC_OK;
 }
 
@@ -153,7 +149,7 @@ ecc_status_code calculate_general_private_key(ecc_private_key *pr_k, ecc_public_
     if (!validate_public_key(pb_k, curve)) {
         return ECC_NOT_ON_CURVE;
     }
-    
+    gen_pr_k->G = (ecc_point_projective *) malloc(sizeof(ecc_point_projective));
     mul_scalar_projective(gen_pr_k->G, pb_k->G, *(pr_k->n), curve);
     return ECC_OK;
 }
