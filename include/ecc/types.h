@@ -65,6 +65,6 @@ typedef struct {
 
 typedef struct {
     ecc_point_projective *G;
-} ecc_general_private_key;
+} ecc_shared_private_key;
 
 #endif

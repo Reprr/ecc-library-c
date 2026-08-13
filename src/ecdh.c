@@ -145,7 +145,7 @@ ecc_status_code generate_key_pair (ecc_private_key *pr_k, ecc_public_key *pb_k, 
     return ECC_OK;
 }
 
-ecc_status_code calculate_general_private_key(ecc_private_key *pr_k, ecc_public_key *pb_k, ecc_curve *curve, ecc_general_private_key *gen_pr_k) {
+ecc_status_code calculate_shared_private_key(ecc_private_key *pr_k, ecc_public_key *pb_k, ecc_curve *curve, ecc_shared_private_key *gen_pr_k) {
     if (!validate_public_key(pb_k, curve)) {
         return ECC_NOT_ON_CURVE;
     }
