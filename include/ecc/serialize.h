@@ -45,5 +45,15 @@ void serialize_shared_priv_key_sec1(
     serialized_shared_priv_key *out,
     const ecc_curve *curve
 );
+void deserialize_uncompressed_pub_key_sec1(
+    const ecc_public_key *pb_k,
+    uint8_t *out,
+    const ecc_curve *curve
+);
+void deserialize_compressed_pub_key_sec1(
+    const ecc_public_key *pb_k,
+    uint8_t *in,
+    const ecc_curve *curve
+);
 
 #endif
