@@ -36,13 +36,13 @@ typedef struct { // Common projective
 } ecc_point_projective;
 
 typedef struct {
-    ecc_field *F;
+    ecc_field F;
 
     ecc_int a;
     ecc_int b;
 
-    ecc_point_affine *G_affine;
-    ecc_point_projective *G_projective;
+    ecc_point_affine G_affine;
+    ecc_point_projective G_projective;
 
     ecc_int N;
     ecc_int h;
@@ -56,15 +56,15 @@ typedef enum {
 } ecc_status_code;
 
 typedef struct {
-    ecc_point_projective *G;
+    ecc_point_projective G;
 } ecc_public_key;
 
 typedef struct {
-    ecc_int *n;
+    ecc_int n;
 } ecc_private_key;
 
 typedef struct {
-    ecc_point_projective *G;
+    ecc_point_projective G;
 } ecc_shared_private_key;
 
 #endif

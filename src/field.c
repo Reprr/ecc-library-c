@@ -24,7 +24,7 @@ ecc_int inv(ecc_int a, ecc_int p) {
 }
 
 ecc_int calc_lambda(const ecc_point_affine *P, const ecc_point_affine *Q, const ecc_curve *curve) {
-    ecc_int p = curve->F->p;
+    ecc_int p = curve->F.p;
     
     if (equal(P->x, Q->x) && equal(P->y, Q->y) && P->inf == Q->inf) {
         // lambda = (3x^2 + a) / (2y)
@@ -40,7 +40,7 @@ ecc_int calc_lambda(const ecc_point_affine *P, const ecc_point_affine *Q, const 
 }
 
 void sum_affine(ecc_point_affine *R, const ecc_point_affine *P, const ecc_point_affine *Q, const ecc_curve *curve) {
-    ecc_int p = curve->F->p;
+    ecc_int p = curve->F.p;
     
     if (P->inf) {
         *R = *Q;
@@ -98,7 +98,7 @@ void mul_scalar_affine(ecc_point_affine *R, const ecc_point_affine *P, ecc_int n
 bool is_on_curve(const ecc_point_affine *P, const ecc_curve *curve) {
     if (P->inf) return true;
     
-    ecc_int p = curve->F->p;
+    ecc_int p = curve->F.p;
     ecc_int left = mul(P->y, P->y, p);
     ecc_int right = sum(
         mul(mul(P->x, P->x, p), P->x, p),
@@ -132,7 +132,7 @@ void projective_to_affine(ecc_point_affine *aff, const ecc_point_projective *pro
 bool is_on_curve_projective(const ecc_point_projective *P, const ecc_curve *curve) {
     if (P->inf || equal(P->z, from_u64(0))) return true;
     
-    ecc_int p = curve->F->p;
+    ecc_int p = curve->F.p;
     
     // Y^2 * Z
     ecc_int left = mul(mul(P->y, P->y, p), P->z, p);
@@ -155,7 +155,7 @@ bool is_on_curve_projective(const ecc_point_projective *P, const ecc_curve *curv
 }
 
 void double_projective(ecc_point_projective *R, const ecc_point_projective *P, const ecc_curve *curve) {
-    ecc_int p = curve->F->p;
+    ecc_int p = curve->F.p;
     
     // W = 3X^2 + aZ^2
     ecc_int W = sum(
@@ -188,7 +188,7 @@ void double_projective(ecc_point_projective *R, const ecc_point_projective *P, c
 }
 
 void sum_projective_neq(ecc_point_projective *R, const ecc_point_projective *P, const ecc_point_projective *Q, const ecc_curve *curve) {
-    ecc_int p = curve->F->p;
+    ecc_int p = curve->F.p;
     // U = Y2 * Z1 - Y1 * Z2
     // V = X2 * Z1 - X1 * Z2
     ecc_int U = sub(
@@ -252,7 +252,7 @@ void sum_projective(
     const ecc_point_projective *Q,
     const ecc_curve *curve
 ) {
-    ecc_int p = curve->F->p;
+    ecc_int p = curve->F.p;
     
     if (P->inf || equal(P->z, from_u64(0))) { *R = *Q; return; }
     if (Q->inf || equal(Q->z, from_u64(0))) { *R = *P; return; }
