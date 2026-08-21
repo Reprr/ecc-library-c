@@ -1,39 +1,86 @@
-CC = gcc
-CFLAGS = -Wall -Wextra -std=c11 -I./include
+CC     := gcc
+CFLAGS := -Wall -Wextra -std=c99 -g -O2 -MMD -MP
+CFLAGS += -Iinclude -Iinclude/ecc
+LDLIBS := -lm
 
-SRC_DIR = src
-TEST_DIR = test
-INCLUDE_DIR = include/ecc
+ifdef ASAN
+CFLAGS += -fsanitize=address,undefined -fno-omit-frame-pointer
+LDLIBS += -fsanitize=address,undefined
+endif
 
-SRCS = $(wildcard $(SRC_DIR)/*.c)
-OBJS = $(SRCS:.c=.o)
+BUILD_DIR := build
+OBJ_DIR   := $(BUILD_DIR)/obj
+LIB_DIR   := $(BUILD_DIR)/lib
+BIN_DIR   := $(BUILD_DIR)/bin
 
-UNITY_SRC = $(TEST_DIR)/unity.c
+LIB_SRCS := $(wildcard src/*.c)
+LIB_OBJS := $(patsubst src/%.c,$(OBJ_DIR)/%.o,$(LIB_SRCS))
+LIB_PIC  := $(patsubst src/%.c,$(OBJ_DIR)/%.pic.o,$(LIB_SRCS))
 
-TESTS = big_int_test field_test ecdh_api_test
+STATIC_LIB := $(LIB_DIR)/libecc.a
+SHARED_LIB := $(LIB_DIR)/libecc.so
 
-all: $(TESTS)
-s
-big_int_test: $(TEST_DIR)/big_int_test.c $(UNITY_SRC) $(SRCS)
-	$(CC) $(CFLAGS) -o $@ $^
+TEST_SRCS := $(wildcard test/*_test.c)
+TEST_BINS := $(patsubst test/%_test.c,$(BIN_DIR)/%_test,$(TEST_SRCS))
+UNITY_OBJ := $(OBJ_DIR)/unity.o
 
-field_test: $(TEST_DIR)/field_test.c $(UNITY_SRC) $(SRCS)
-	$(CC) $(CFLAGS) -o $@ $^
+EXAMPLE_BIN := $(BIN_DIR)/ecdh_example
 
-ecdh_api_test: $(TEST_DIR)/ecdh_api_test.c $(UNITY_SRC) $(SRCS)
-	$(CC) $(CFLAGS) -o $@ $^
+.PHONY: all libs shared test example run-tests clean help
 
-test: $(TESTS)
-	@echo "Running big_int_test..."
-	@./big_int_test
-	@echo ""
-	@echo "Running field_test..."
-	@./field_test
-	@echo ""
-	@echo "Running ecdh_test..."
-	@./ecdh_api_test
+all: libs test example
+
+libs: $(STATIC_LIB)
+shared: $(SHARED_LIB)
+test: $(TEST_BINS)
+example: $(EXAMPLE_BIN)
+
+run-tests: $(TEST_BINS)
+	@for t in $(TEST_BINS); do \
+		echo "=== $$t ==="; $$t || exit 1; echo; \
+	done
+	@echo "All tests passed"
+
+help:
+	@echo "  make            - статическая библиотека + тесты + пример"
+	@echo "  make shared     - динамическая библиотека libecc.so"
+	@echo "  make run-tests  - прогнать все тесты"
+	@echo "  make ASAN=1 ... - сборка с ASan/UBSan"
+	@echo "  make clean      - очистка"
 
 clean:
-	rm -f $(TESTS) $(OBJS)
+	rm -rf $(BUILD_DIR)
 
-.PHONY: all test clean
+
+
+$(OBJ_DIR)/%.o: src/%.c | $(OBJ_DIR)
+	$(CC) $(CFLAGS) -c $< -o $@
+
+$(OBJ_DIR)/%.pic.o: src/%.c | $(OBJ_DIR)
+	$(CC) $(CFLAGS) -fPIC -c $< -o $@
+
+$(STATIC_LIB): $(LIB_OBJS) | $(LIB_DIR)
+	ar rcs $@ $^
+
+$(SHARED_LIB): $(LIB_PIC) | $(LIB_DIR)
+	$(CC) -shared $(CFLAGS) $^ -o $@ $(LDLIBS)
+
+$(UNITY_OBJ): test/unity.c | $(OBJ_DIR)
+	$(CC) $(CFLAGS) -Itest -c $< -o $@
+
+$(OBJ_DIR)/%_test.o: test/%_test.c | $(OBJ_DIR)
+	$(CC) $(CFLAGS) -Itest -c $< -o $@
+
+$(BIN_DIR)/%_test: $(OBJ_DIR)/%_test.o $(UNITY_OBJ) $(STATIC_LIB) | $(BIN_DIR)
+	$(CC) $(CFLAGS) $^ -o $@ $(LDLIBS)
+
+$(OBJ_DIR)/example.o: examples/ecdh_example.c | $(OBJ_DIR)
+	$(CC) $(CFLAGS) -c $< -o $@
+
+$(EXAMPLE_BIN): $(OBJ_DIR)/example.o $(STATIC_LIB) | $(BIN_DIR)
+	$(CC) $(CFLAGS) $^ -o $@ $(LDLIBS)
+
+$(OBJ_DIR) $(LIB_DIR) $(BIN_DIR):
+	mkdir -p $@
+
+-include $(wildcard $(OBJ_DIR)/*.d)
