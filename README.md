@@ -1,31 +1,10 @@
 # ECC Library
 
 A from-scratch implementation of elliptic curve cryptography primitives in C99,
-following **SEC 1 v2.0**. Targets the **secp256k1** curve. Zero external dependencies.
+following SEC 1 v2.0. Targets the secp256k1 curve. Zero external dependencies.
 
 > **Warning.** Educational project. Not audited, not constant-time, no side-channel
 > protection. Do not use in production.
-
-## Implemented
-
-**Arithmetic**
-- 256-bit integer arithmetic (add, sub, mul, modular reduction, shifts, comparisons)
-- Modular inversion via Fermat's little theorem
-- Affine and projective point operations (addition, doubling, scalar multiplication)
-
-**SEC 1 primitives**
-- Key pair generation (§3.2.1) and public key validation (§3.2.2)
-- ECDH primitive (§3.3.1)
-- Point serialization: uncompressed / compressed (§2.3.3), private keys (§2.3.7)
-
-**Hashing and key derivation**
-- SHA-256 (FIPS 180-4), streaming `init / update / finalize` API
-- HMAC-SHA-256 (RFC 2104)
-- ANSI X9.63 KDF (§3.6.1)
-
-**In progress**
-- ECDSA (§4.1), RFC 6979 deterministic nonces
-- ECIES (§5.1)
 
 ## Building
 
@@ -56,12 +35,6 @@ Shared Z    : 0c3fff89aeaa910901f7d3453a867c3ff9c83769740255920c8b21f2ddc88935
 Session key : d5cc839722929c3d72154e3f395f1d18ba5556b524d95e02bb5ab48804fa1e8a
 ECDH OK
 ```
-
-## Testing
-
-Unity-based suite covering big-integer edge cases, projective point arithmetic,
-SEC 1 serialization round-trips and malformed-input rejection, ECDH symmetry,
-and SHA-256 FIPS 180-4 vectors (including padding boundary lengths).
 
 ## Layout
 
