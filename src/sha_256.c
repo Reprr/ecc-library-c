@@ -9,7 +9,7 @@ void sha256_init(sha256_ctx *ctx) {
     memcpy(ctx->state, H0, sizeof(H0));
 }
 
-void sha256_update(const uint8_t *msg, size_t msg_len, sha256_ctx *ctx) {
+void sha256_update(sha256_ctx *ctx, const uint8_t *msg, size_t msg_len) {
     for (size_t i = 0; i < msg_len; ++i) {
         ctx->data[ctx->data_len++] = msg[i];
         ctx->bit_len += 8;
