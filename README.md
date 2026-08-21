@@ -51,8 +51,6 @@ examples/      usage examples
 - No side-channel mitigations
 - No independent audit
 
-For production cryptography use libsodium, OpenSSL, or BoringSSL.
-
 ## References
 
 - SEC 1 v2.0 — Elliptic Curve Cryptography, Certicom
