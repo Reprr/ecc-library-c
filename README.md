@@ -50,10 +50,10 @@ derivation on both sides, and session key derivation.
 
 ```sh
 $ ./build/bin/ecdh_example
-Alice pub   : 035e703479efa0e95155ef2eef279a06e69eee412ede348ea1c41bc0c57d7d570a
-Bob pub     : 03ec69935c7294ca493f4d865ea555e67ed03c2aa3b8736d6558268ff6a8ce578a
-Shared Z    : bdc945651ac6d9433295b996f61aae50fc6a38fc27101de143ed3d0d02f29415
-Session key : dbd5ea51f3c9a2675929401e0aa8614aad24d6dd8e1bdade69f954d49bce2078
+Alice pub   : 02d14ec659c2a8a0bd9af9de72bcdd4fc7968c87bb8e9c52955c58e65e091f9cec
+Bob pub     : 03195a0382663e3f56913c9cb76d5864e1896aca3091ad9ebd06fbef0237487010
+Shared Z    : 0c3fff89aeaa910901f7d3453a867c3ff9c83769740255920c8b21f2ddc88935
+Session key : d5cc839722929c3d72154e3f395f1d18ba5556b524d95e02bb5ab48804fa1e8a
 ECDH OK
 ```
 
