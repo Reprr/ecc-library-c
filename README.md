@@ -55,5 +55,5 @@ examples/      usage examples
 
 - SEC 1 v2.0 — Elliptic Curve Cryptography, Certicom
 - FIPS 180-4 — Secure Hash Standard (SHA-2)
-- RFC 2104 — HMAC: Keyed-Hashing for Message Authentication
+<!-- - RFC 2104 — HMAC: Keyed-Hashing for Message Authentication -->
 - RFC 6979 — Deterministic Usage of DSA and ECDSA
