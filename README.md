@@ -1,10 +1,10 @@
 # ECC Library
 
 A from-scratch implementation of elliptic curve cryptography primitives in C99,
-following SEC 1 v2.0. Targets the secp256k1 curve.
+following SEC 1 v2.0, targets the secp256k1 curve.
 
-> **Warning.** Educational project. Not audited, not constant-time, no side-channel
-> protection. Do not use in production.
+> **Warning.** Educational project: not audited, not constant-time, no side-channel
+> protection - do not use in production.
 
 ## Building
 
@@ -56,4 +56,4 @@ examples/      usage examples
 - SEC 1 v2.0 — Elliptic Curve Cryptography, Certicom
 - FIPS 180-4 — Secure Hash Standard (SHA-2)
 <!-- - RFC 2104 — HMAC: Keyed-Hashing for Message Authentication -->
-- RFC 6979 — Deterministic Usage of DSA and ECDSA
+<!-- - RFC 6979 — Deterministic Usage of DSA and ECDSA -->
