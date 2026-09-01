@@ -281,6 +281,29 @@ void sum_projective(
     sum_projective_neq(R, P, Q, curve);
 }
 
+static void point_swap(int condition, ecc_point_projective *A, ecc_point_projective *B) {
+    uint32_t mask = (uint32_t)(-(int32_t)condition); 
+    
+    for (int i = 0; i < NUM_LIMBS; i++) {
+        uint32_t x = A->x.d[i] ^ B->x.d[i];
+        uint32_t y = A->y.d[i] ^ B->y.d[i];
+        uint32_t z = A->z.d[i] ^ B->z.d[i];
+        
+        A->x.d[i] ^= (x & mask);
+        B->x.d[i] ^= (x & mask);
+        
+        A->y.d[i] ^= (y & mask);
+        B->y.d[i] ^= (y & mask);
+        
+        A->z.d[i] ^= (z & mask);
+        B->z.d[i] ^= (z & mask);
+    }
+    
+    bool inf_diff = A->inf ^ B->inf;
+    A->inf ^= (inf_diff & (bool)mask);
+    B->inf ^= (inf_diff & (bool)mask);
+}
+
 void mul_scalar_projective(
     ecc_point_projective *R,
     const ecc_point_projective *P,
@@ -292,18 +315,25 @@ void mul_scalar_projective(
         return;
     }
 
-    ecc_point_projective result = NULL_POINT_PROJECTIVE;
-    ecc_point_projective base = *P;
-    ecc_int temp = n;
+    ecc_point_projective Q[2];
 
-    while (cmp(temp, from_u64(0)) > 0) {
-        if (temp.d[0] & 1) {
-            sum_projective(&result, &result, &base, curve);
+    for (int i = NUM_LIMBS - 1; i >= 0; --i) {
+        for (int j = 31; j >= 0; --j) {
+            int k_i = (k >> j) & 1;
+
+            ecc_point_projective sum, dbl;
+            sum_projective_neq(&sum, Q[0], Q[1]);
+            double_projective(&dbl, Q[0], Q[0]);
+
+            point_swap(k_i, &Q[0], &Q[1]);
+
+            sum_projective(&Q[1], &Q[0], &Q[1], curve);
+            double_projective(&Q[0], &Q[0], curve);
+            
+            point_swap(k_i, &Q[0], &Q[1]);
         }
-        sum_projective(&base, &base, &base, curve);
-        temp = shift_right_1(temp);
     }
-    *R = result;
+    *R = Q[0];
 }
 
 void init_null_points() {

@@ -61,7 +61,7 @@ ecc_status_code serialize_priv_key_sec1(
     const ecc_curve *curve
 ) {
     if (!pr_k || !out || !curve) return ECC_INVALID_PARAMS;
-    if (cmp(pr_k->n, from_u64(1)) < 0 || cmp(pr_k->n, curve->N) > 0) return ECC_INVALID_PARAMS;
+    if (cmp(pr_k->n, from_u64(1)) < 0 || cmp(pr_k->n, curve->N) >= 0) return ECC_INVALID_PARAMS;
 
     memset(out->data, 0, sizeof(out->data));
 

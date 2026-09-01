@@ -100,6 +100,10 @@ ecc_status_code init_curve(char *curve_ident, ecc_curve *curve) {
     }
 }
 
+ecc_status_code dual_EC_RNG(ecc_curve *curve, ecc_point_affine *Q) {
+    
+}
+
 ecc_status_code generate_private_key(ecc_private_key *pr_k, const ecc_curve *curve) {
     ecc_int zero = from_u64(0);
 
@@ -153,3 +157,5 @@ ecc_status_code calculate_shared_private_key(ecc_private_key *pr_k, ecc_public_k
     mul_scalar_projective(&gen_pr_k->G, &pb_k->G, pr_k->n, curve);
     return ECC_OK;
 }
+
+
