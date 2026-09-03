@@ -303,29 +303,26 @@ void mul_scalar_projective(
 
     ecc_point_projective Q[2];
 
-    for (int i = NUM_LIMBS - 1; i >= 0; --i) {
-        for (int j = 31; j >= 0; --j) {
-            
-            int k_i = get_nth_bit(k, j);
+    for (int i = NUM_LIMBS * 32 - 1; i >= 0; --i) {
+        int k_i = get_nth_bit(k, i);
 
-            ecc_point_projective sum, dbl;
-            sum_projective_neq(&sum, &Q[0], &Q[1], curve);
-            double_projective(&dbl, &Q[0], curve);
+        ecc_point_projective sum, dbl;
+        sum_projective_neq(&sum, &Q[0], &Q[1], curve);
+        double_projective(&dbl, &Q[0], curve);
 
-            if (k_i) {
-                for (int l = 0; l < NUM_LIMBS; ++l) {
-                    Q[0].x.d[l] = sum.x.d[l];
-                    Q[0].y.d[l] = sum.y.d[l];
-                    Q[1].x.d[l] = dbl.x.d[l];
-                    Q[1].y.d[l] = dbl.y.d[l];
-                }
-            } else {
-                for (int l = 0; l < NUM_LIMBS; ++l) {
-                    Q[0].x.d[l] = dbl.x.d[l];
-                    Q[0].y.d[l] = dbl.y.d[l];
-                    Q[1].x.d[l] = sum.x.d[l];
-                    Q[1].y.d[l] = sum.y.d[l];
-                }
+        if (k_i) {
+            for (int l = 0; l < NUM_LIMBS; ++l) {
+                Q[0].x.d[l] = sum.x.d[l];
+                Q[0].y.d[l] = sum.y.d[l];
+                Q[1].x.d[l] = dbl.x.d[l];
+                Q[1].y.d[l] = dbl.y.d[l];
+            }
+        } else {
+            for (int l = 0; l < NUM_LIMBS; ++l) {
+                Q[0].x.d[l] = dbl.x.d[l];
+                Q[0].y.d[l] = dbl.y.d[l];
+                Q[1].x.d[l] = sum.x.d[l];
+                Q[1].y.d[l] = sum.y.d[l];
             }
         }
     }
