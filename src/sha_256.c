@@ -1,4 +1,5 @@
 #include "../include/ecc/sha_256.h"
+#include <stdio.h>
 
 void sha256_init(sha256_ctx *ctx) {
     ctx->data_len = ctx->bit_len = 0;
@@ -9,7 +10,12 @@ void sha256_init(sha256_ctx *ctx) {
     memcpy(ctx->state, H0, sizeof(H0));
 }
 
-void sha256_update(sha256_ctx *ctx, const uint8_t *msg, size_t msg_len) {
+int sha256_update(sha256_ctx *ctx, const uint8_t *msg, size_t msg_len) {
+    if (!msg) {
+        fprintf (stderr, "error: invalid params\n");
+        return -1;
+    }
+
     for (size_t i = 0; i < msg_len; ++i) {
         ctx->data[ctx->data_len++] = msg[i];
         ctx->bit_len += 8;
@@ -19,6 +25,7 @@ void sha256_update(sha256_ctx *ctx, const uint8_t *msg, size_t msg_len) {
         }
     }
     // sha256_finalize(ctx, ctx->data);
+    return 0;
 }
 
 void sha256_transform(sha256_ctx *ctx, const uint8_t data[]) {
@@ -73,4 +80,17 @@ void sha256_finalize(sha256_ctx *ctx, uint8_t hash[32]) {
             hash[i + j * 4] = (ctx->state[j] >> (24 - i * 8)) & 0xff;
         }
     }
+}
+
+int sha256(const uint8_t *msg, size_t msg_len, uint8_t hash[SHA256_DIGEST_SIZE]) {
+    if (!msg) {
+        fprintf (stderr, "error: invalid params\n");
+        return -1;
+    }
+    
+    sha256_ctx ctx;
+    sha256_init(&ctx);
+    sha256_update(&ctx, msg, msg_len);
+    sha256_finalize(&ctx, hash);
+    return 0;
 }

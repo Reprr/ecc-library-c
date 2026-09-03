@@ -36,8 +36,9 @@ typedef struct {
 } sha256_ctx;
 
 void sha256_init(sha256_ctx *ctx);
-void sha256_update(sha256_ctx *ctx, const uint8_t *msg, size_t msg_len);
+int sha256_update(sha256_ctx *ctx, const uint8_t *msg, size_t msg_len);
 void sha256_transform(sha256_ctx *ctx, const uint8_t data[]);
-void sha256_finalize(sha256_ctx *ctx, uint8_t hash[32]);
+void sha256_finalize(sha256_ctx *ctx, uint8_t hash[SHA256_DIGEST_SIZE]);
+int sha256(const uint8_t *msg, size_t msg_len, uint8_t hash[SHA256_DIGEST_SIZE]);
 
 #endif

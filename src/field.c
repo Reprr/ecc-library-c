@@ -281,36 +281,22 @@ void sum_projective(
     sum_projective_neq(R, P, Q, curve);
 }
 
-static void point_swap(int condition, ecc_point_projective *A, ecc_point_projective *B) {
-    uint32_t mask = (uint32_t)(-(int32_t)condition); 
-    
-    for (int i = 0; i < NUM_LIMBS; i++) {
-        uint32_t x = A->x.d[i] ^ B->x.d[i];
-        uint32_t y = A->y.d[i] ^ B->y.d[i];
-        uint32_t z = A->z.d[i] ^ B->z.d[i];
-        
-        A->x.d[i] ^= (x & mask);
-        B->x.d[i] ^= (x & mask);
-        
-        A->y.d[i] ^= (y & mask);
-        B->y.d[i] ^= (y & mask);
-        
-        A->z.d[i] ^= (z & mask);
-        B->z.d[i] ^= (z & mask);
+static int get_nth_bit(ecc_int k, int i) {
+    if (i < 0 || i >= NUM_LIMBS * 32) {
+        return 0;
     }
-    
-    bool inf_diff = A->inf ^ B->inf;
-    A->inf ^= (inf_diff & (bool)mask);
-    B->inf ^= (inf_diff & (bool)mask);
+    int limb = i / 32;
+    int bit = i % 32;
+    return (k.d[limb] >> bit) & 1;
 }
 
 void mul_scalar_projective(
     ecc_point_projective *R,
     const ecc_point_projective *P,
-    ecc_int n,
+    ecc_int k,
     const ecc_curve *curve
 ) {
-    if (equal(n, from_u64(0)) || P->inf || equal(P->z, from_u64(0))) {
+    if (equal(k, from_u64(0)) || P->inf || equal(P->z, from_u64(0))) {
         *R = NULL_POINT_PROJECTIVE;
         return;
     }
@@ -319,18 +305,28 @@ void mul_scalar_projective(
 
     for (int i = NUM_LIMBS - 1; i >= 0; --i) {
         for (int j = 31; j >= 0; --j) {
-            int k_i = (k >> j) & 1;
+            
+            int k_i = get_nth_bit(k, j);
 
             ecc_point_projective sum, dbl;
-            sum_projective_neq(&sum, Q[0], Q[1]);
-            double_projective(&dbl, Q[0], Q[0]);
+            sum_projective_neq(&sum, &Q[0], &Q[1], curve);
+            double_projective(&dbl, &Q[0], curve);
 
-            point_swap(k_i, &Q[0], &Q[1]);
-
-            sum_projective(&Q[1], &Q[0], &Q[1], curve);
-            double_projective(&Q[0], &Q[0], curve);
-            
-            point_swap(k_i, &Q[0], &Q[1]);
+            if (k_i) {
+                for (int l = 0; l < NUM_LIMBS; ++l) {
+                    Q[0].x.d[l] = sum.x.d[l];
+                    Q[0].y.d[l] = sum.y.d[l];
+                    Q[1].x.d[l] = dbl.x.d[l];
+                    Q[1].y.d[l] = dbl.y.d[l];
+                }
+            } else {
+                for (int l = 0; l < NUM_LIMBS; ++l) {
+                    Q[0].x.d[l] = dbl.x.d[l];
+                    Q[0].y.d[l] = dbl.y.d[l];
+                    Q[1].x.d[l] = sum.x.d[l];
+                    Q[1].y.d[l] = sum.y.d[l];
+                }
+            }
         }
     }
     *R = Q[0];
